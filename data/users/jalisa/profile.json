@@ -11,7 +11,7 @@
     "start": "09:00",
     "end": "23:00"
   },
-  "preferredStudyDuration": 60,
+  "preferredStudyDuration": 75,
   "roadmapStartDates": {
     "6month-mastery": "2026-08-01",
     "webdev-8week": "2026-08-01"
