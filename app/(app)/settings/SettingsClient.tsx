@@ -127,6 +127,15 @@ export default function SettingsClient({ settings: initialSettings, profile: ini
         </Row>
       </Section>
 
+      <Section title="Roadmap Scheduling">
+        <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 text-sm text-white/70">
+          <p className="font-semibold text-amber-400 mb-1">Adaptive Timeline</p>
+          <p className="text-xs text-white/50 leading-relaxed">
+            Your daily workload is fixed at <strong>2 tasks per day</strong>. The roadmap adapts automatically to your pace; missing a day will pause your timeline, and completing tasks will catch you up.
+          </p>
+        </div>
+      </Section>
+
       <Section title="XP Multipliers">
         <p className="text-xs text-white/40">Base XP: {settings.baseXP} per task. Multiplied by difficulty.</p>
         {(['easy', 'medium', 'hard'] as const).map(diff => (

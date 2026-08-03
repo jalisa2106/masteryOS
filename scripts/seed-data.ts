@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
-const USERS = ['swayam', 'jalisa'];
+const USERS = ['jalisa'];
 const ROADMAP_START_DATE = '2026-07-26'; // DD-MM-YYYY: 26-07-2026
 
 function ensureDir(dir: string) {
@@ -22,7 +22,7 @@ for (const userId of USERS) {
   const userDir = path.join(DATA_DIR, 'users', userId);
   ensureDir(userDir);
 
-  const displayName = userId === 'swayam' ? 'Swayam' : 'Jalisa';
+  const displayName = 'Jalisa';
 
   writeFile(path.join(userDir, 'profile.json'), {
     userId,

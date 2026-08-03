@@ -25,11 +25,6 @@ export default function TopBarXP({ initialXP, initialLevel }: TopBarXPProps) {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-full border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
-        <Zap className="w-3.5 h-3.5" />
-        <span className="text-sm font-bold font-mono">Lvl {displayLevel}</span>
-        <span className="text-xs text-amber-500/60 font-mono">· {displayXP.toLocaleString()} XP</span>
-      </div>
       <LogoutButton />
     </div>
   );

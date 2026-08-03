@@ -16,6 +16,8 @@ const settingsSchema = z.object({
   quoteCategories: z.array(z.string()).optional(),
   themeAccent: z.object({ h: z.number(), s: z.number(), l: z.number() }).optional(),
   notifications: z.record(z.string(), z.boolean()).optional(),
+  dailyGoal: z.number().min(1).max(10).optional(),
+  focusTasksCount: z.number().min(1).max(10).optional(),
 }).partial();
 
 export async function GET() {

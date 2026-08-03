@@ -20,6 +20,7 @@ export async function GET() {
   const sessions = getUserSessions(userId);
   const achievements = getUserAchievements(userId);
   const definitions = getAchievementDefinitions();
+  const settings = getUserSettings(userId);
 
   const daysActive = new Set(sessions.sessions.map(s => s.date.split('T')[0])).size;
   const startDate = profile.roadmapStartDates?.['6month-mastery'] || new Date().toISOString().split('T')[0];
@@ -31,7 +32,7 @@ export async function GET() {
     title: r.title,
     color: r.color,
     completion: roadmapCompletion(progress, r),
-    predictedFinish: predictFinishDate(progress, r, profile.roadmapStartDates?.[r.id] || startDate),
+    predictedFinish: predictFinishDate(progress, r, profile.roadmapStartDates?.[r.id] || startDate, settings.dailyGoal),
     totalNodes: r.totalNodes,
     completedNodes: r.phases.flatMap(p => p.weeks.flatMap(w => w.nodes)).filter(n => progress.nodes[n.id]?.status === 'completed').length,
   }));

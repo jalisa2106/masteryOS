@@ -2,18 +2,19 @@
 
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Zap, TrendingUp, Calendar } from 'lucide-react';
+import { Flame, Zap, TrendingUp, Calendar, Compass } from 'lucide-react';
 import { useProgressStore } from '@/lib/store/progressStore';
 import { useUIStore } from '@/lib/store/uiStore';
 import ProgressRing from '@/components/dashboard/ProgressRing';
 import RoadmapSwitcher from '@/components/dashboard/RoadmapSwitcher';
 import TodaysTasks from '@/components/dashboard/TodaysTasks';
-import type { NodeProgress, UserProfile } from '@/lib/storage/readJson';
+import type { NodeProgress, UserProfile, UserSettings } from '@/lib/storage/readJson';
 import { getTrackColor } from '@/lib/theme/trackPalette';
 
 interface DashboardData {
   userId: string;
   profile: UserProfile;
+  settings: UserSettings;
   progress: {
     nodes: Record<string, NodeProgress>;
     streak: { current: number; longest: number; lastActiveDate: string | null };
@@ -23,10 +24,11 @@ interface DashboardData {
   completionByRoadmap: Array<{
     id: string; title: string; color: string; completion: number;
     completedNodes: number; totalNodes: number; predictedFinish: string;
+    timelineStatus?: string;
   }>;
   blendedCompletion: number;
   trackStats: Record<string, { done: number; total: number; color: string; roadmapId: string }>;
-  todayTasks: Array<{ id: string; title: string; track: string; estimatedMinutes: number; difficulty: 'easy' | 'medium' | 'hard'; roadmapId: string; dependencies: string[] }>;
+  todayTasks: Array<{ id: string; title: string; track: string; estimatedMinutes: number; difficulty: 'easy' | 'medium' | 'hard'; roadmapId: string; dependencies: string[]; locked: boolean }>;
   completedNodeIds: Set<string>;
 }
 
@@ -145,7 +147,7 @@ export default function DashboardClient({ initialData }: { initialData: Dashboar
                       />
                     </div>
                     <p className="text-xs text-white/30">
-                      {r.completedNodes}/{r.totalNodes} nodes · est. {r.predictedFinish}
+                      {r.completedNodes}/{r.totalNodes} nodes
                     </p>
                   </div>
                 ))}
@@ -154,10 +156,10 @@ export default function DashboardClient({ initialData }: { initialData: Dashboar
           </motion.div>
 
           {/* Stats column */}
-          <div className="flex flex-col gap-5">
+          <div className="lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 gap-5 h-fit">
             <motion.div
               variants={cardVariant}
-              className="bg-[#101319]/80 backdrop-blur-md rounded-[20px] p-6 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.4)]"
+              className="sm:col-span-1 bg-[#101319]/80 backdrop-blur-md rounded-[20px] p-6 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.4)] flex flex-col justify-center"
             >
               <div className="flex items-center gap-2 mb-2">
                 <Flame className="w-4 h-4 text-orange-400" />
@@ -172,7 +174,7 @@ export default function DashboardClient({ initialData }: { initialData: Dashboar
 
             <motion.div
               variants={cardVariant}
-              className="bg-[#101319]/80 backdrop-blur-md rounded-[20px] p-6 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.4)]"
+              className="sm:col-span-1 bg-[#101319]/80 backdrop-blur-md rounded-[20px] p-6 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.4)] flex flex-col justify-center"
             >
               <div className="flex items-center gap-2 mb-2">
                 <Zap className="w-4 h-4 text-amber-400" />
@@ -182,7 +184,6 @@ export default function DashboardClient({ initialData }: { initialData: Dashboar
                 {xp.total.toLocaleString()}
                 <span className="text-base text-white/40 font-sans tracking-normal ml-1">XP</span>
               </div>
-              {/* XP progress to next level */}
               <div className="mt-3">
                 <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                   <div
@@ -193,14 +194,14 @@ export default function DashboardClient({ initialData }: { initialData: Dashboar
                   />
                 </div>
                 <p className="text-xs text-white/30 mt-1">
-                  {xp.total} / {Math.floor(100 * Math.pow(xp.level + 1, 1.5))} XP to Lvl {xp.level + 1}
+                  {xp.total} / {Math.floor(100 * Math.pow(xp.level + 1, 1.5))} XP
                 </p>
               </div>
             </motion.div>
 
             <motion.div
               variants={cardVariant}
-              className="bg-[#101319]/80 backdrop-blur-md rounded-[20px] p-6 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.4)]"
+              className="sm:col-span-2 bg-[#101319]/80 backdrop-blur-md rounded-[20px] p-6 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.4)]"
             >
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -243,15 +244,40 @@ export default function DashboardClient({ initialData }: { initialData: Dashboar
           </div>
         </motion.div>
 
-        {/* Today's Tasks */}
+        {/* Current Focus */}
         <motion.div
           variants={cardVariant}
           className="bg-[#101319]/80 backdrop-blur-md rounded-[20px] p-6 border border-white/5 shadow-[0_0_20px_rgba(0,0,0,0.4)]"
         >
-          <div className="flex items-center gap-2 mb-5">
-            <Calendar className="w-4 h-4 text-white/50" />
-            <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">Today&apos;s Objectives</h3>
-            <span className="ml-auto text-xs text-white/30">{activeTasks.length} task{activeTasks.length !== 1 ? 's' : ''}</span>
+          <div className="flex flex-col gap-2 mb-5 border-b border-white/5 pb-4">
+            <div className="flex items-center gap-2">
+              <Compass className="w-4 h-4 text-amber-500" />
+              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">Current Focus</h3>
+              <span className="ml-auto text-xs text-white/30">{activeTasks.length} task{activeTasks.length !== 1 ? 's' : ''}</span>
+            </div>
+            
+            {/* Timeline status indicator */}
+            <div className="text-xs font-mono text-white/50 mt-1 flex flex-col gap-1.5">
+              {selectedRoadmap === 'all' ? (
+                initialData.completionByRoadmap.map(r => (
+                  <div key={r.id} className="flex flex-wrap items-center gap-2 bg-white/[0.02] px-3 py-1.5 rounded-lg border border-white/5">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: r.color }} />
+                    <span className="text-white/40 text-[10px] uppercase font-bold">{r.title}:</span>
+                    <span className="text-amber-400 font-semibold">{r.timelineStatus}</span>
+                  </div>
+                ))
+              ) : (
+                (() => {
+                  const activeRoadmap = initialData.completionByRoadmap.find(r => r.id === selectedRoadmap);
+                  return activeRoadmap ? (
+                    <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] px-3 py-1.5 rounded-lg border border-white/5 w-fit">
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: activeRoadmap.color }} />
+                      <span className="text-amber-400 font-semibold">{activeRoadmap.timelineStatus}</span>
+                    </div>
+                  ) : null;
+                })()
+              )}
+            </div>
           </div>
           <TodaysTasks
             tasks={activeTasks}

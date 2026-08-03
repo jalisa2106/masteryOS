@@ -37,6 +37,7 @@ interface TaskNode {
   difficulty: 'easy' | 'medium' | 'hard';
   roadmapId: string;
   dependencies?: string[];
+  locked?: boolean;
 }
 
 interface TodaysTasksProps {
@@ -81,14 +82,14 @@ export default function TodaysTasks({ tasks, completedNodeIds }: TodaysTasksProp
   };
 
   const isLocked = (task: TaskNode) =>
-    task.dependencies?.some(dep => nodes[dep]?.status !== 'completed') ?? false;
+    task.locked || (task.dependencies?.some(dep => nodes[dep]?.status !== 'completed') ?? false);
 
   if (tasks.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="text-5xl mb-4">🎯</div>
-        <p className="text-white/60 font-medium">All tasks complete for today!</p>
-        <p className="text-white/40 text-sm mt-1">Come back tomorrow or mark extra nodes.</p>
+        <p className="text-white/60 font-medium">Focus checklist completed!</p>
+        <p className="text-white/40 text-sm mt-1">Great work! Adjust your goals in Settings to see more tasks.</p>
       </div>
     );
   }

@@ -107,33 +107,25 @@ export function predictFinishDate(
   progress: UserProgress,
   roadmap: Roadmap,
   startDate: string,
+  dailyGoal: number = 2,
 ): string {
-  // Build a set of this roadmap's own node IDs so velocity is isolated per-roadmap
-  const roadmapNodeIds = new Set(
-    roadmap.phases.flatMap(p => p.weeks.flatMap(w => w.nodes.map(n => n.id)))
-  );
-  const totalNodes = roadmapNodeIds.size;
-  const completedNodes = [...roadmapNodeIds].filter(
-    id => progress.nodes[id]?.status === 'completed'
-  ).length;
-  const remainingNodes = totalNodes - completedNodes;
+  const allNodes = roadmap.phases.flatMap(p => p.weeks.flatMap(w => w.nodes));
+  const firstIncompleteIdx = allNodes.findIndex(node => progress.nodes[node.id]?.status !== 'completed');
+  const safeFirstIncompleteIdx = firstIncompleteIdx === -1 ? allNodes.length : firstIncompleteIdx;
 
-  const daysSinceStart = Math.max(
-    1,
-    Math.floor((Date.now() - new Date(startDate).getTime()) / 86_400_000),
-  );
-  const velocity = completedNodes / daysSinceStart; // nodes per day
+  const currentSetIdx = Math.floor(safeFirstIncompleteIdx / 2);
+  
+  const daysSinceStartRoadmap = Math.max(1, Math.floor((Date.now() - new Date(startDate).getTime()) / 86_400_000) + 1);
+  const delayInDays = (daysSinceStartRoadmap - 1) - currentSetIdx;
+  
+  const numWeeks = roadmap.phases.reduce((acc, p) => acc + p.weeks.length, 0);
+  const originalDurationInDays = numWeeks * 7;
 
-  if (velocity === 0) {
-    // No progress yet, estimate based on roadmap duration
-    const estimatedDays = roadmap.durationWeeks * 7;
-    const finish = new Date(startDate);
-    finish.setDate(finish.getDate() + estimatedDays);
-    return finish.toISOString().split('T')[0];
-  }
+  const expDate = new Date(startDate);
+  expDate.setDate(expDate.getDate() + originalDurationInDays + delayInDays);
 
-  const daysRemaining = Math.ceil(remainingNodes / velocity);
-  const finish = new Date();
-  finish.setDate(finish.getDate() + daysRemaining);
-  return finish.toISOString().split('T')[0];
+  const day = String(expDate.getDate()).padStart(2, '0');
+  const month = expDate.toLocaleDateString('en-US', { month: 'short' });
+  const year = expDate.getFullYear();
+  return `${day} ${month} ${year}`;
 }

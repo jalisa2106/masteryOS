@@ -79,7 +79,7 @@ export async function writeJson<T>(relativePath: string, data: T): Promise<void>
  * Helper to write a user-specific JSON file securely.
  */
 export async function writeUserJson<T>(userId: string, filename: string, data: T): Promise<void> {
-  if (userId !== 'swayam' && userId !== 'jalisa') {
+  if (!userId || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
     throw new Error('Invalid user ID. Path traversal prevented.');
   }
   return writeJson<T>(`users/${userId}/${filename}`, data);

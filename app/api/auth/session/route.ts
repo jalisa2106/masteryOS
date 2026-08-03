@@ -3,7 +3,7 @@ import { createSession, clearSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const sessionSchema = z.object({
-  userId: z.enum(['swayam', 'jalisa']),
+  userId: z.string().regex(/^[a-zA-Z0-9_-]+$/),
 });
 
 export async function POST(req: Request) {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth';
-import { getUserRetrospectives, getUserProgress, getAllRoadmaps, getUserProfile, getUserSessions, type Roadmap, type UserProgress } from '@/lib/storage/readJson';
+import { getUserRetrospectives, getUserProgress, getAllRoadmaps, getUserProfile, getUserSessions, getUserSettings, type Roadmap, type UserProgress } from '@/lib/storage/readJson';
 import { writeUserJson } from '@/lib/storage/writeJson';
 import { roadmapCompletion, predictFinishDate } from '@/lib/scoring/masteryScore';
 import { z } from 'zod';
@@ -55,14 +55,18 @@ export async function GET() {
 
   const weakestTrack = computeWeakestTrack(roadmaps, progress);
 
+  const settings = getUserSettings(userId);
+  const dailyGoal = settings.dailyGoal ?? 1;
+
   // Pace status for 6-month roadmap
   const sixMonthRoadmap = roadmaps.find(r => r.id === '6month-mastery');
   const startDate = profile.roadmapStartDates?.['6month-mastery'] || '2026-07-26';
   const daysSinceStart = Math.max(1, Math.floor((Date.now() - new Date(startDate).getTime()) / 86_400_000));
-  const expectedCompletion = daysSinceStart / (24 * 7); // fraction of 24-week plan
-  const actualCompletion = sixMonthRoadmap ? roadmapCompletion(progress, sixMonthRoadmap) / 100 : 0;
-  const paceStatus = actualCompletion >= expectedCompletion * 1.05 ? 'ahead'
-    : actualCompletion >= expectedCompletion * 0.9 ? 'on-track' : 'behind';
+  
+  const completedNodes6 = sixMonthRoadmap ? sixMonthRoadmap.phases.flatMap(p => p.weeks.flatMap(w => w.nodes)).filter(n => progress.nodes[n.id]?.status === 'completed').length : 0;
+  const expectedNodes6 = daysSinceStart * dailyGoal;
+  const paceStatus = completedNodes6 >= expectedNodes6 * 1.05 ? 'ahead'
+    : completedNodes6 >= expectedNodes6 * 0.9 ? 'on-track' : 'behind';
 
   const prePopulated = {
     nodesCompletedThisWeek: weekNodes.length,
@@ -70,9 +74,9 @@ export async function GET() {
     streakMaintained: progress.streak.current > 0,
     weakestTrack,
     paceStatus,
-    predictedFinish6Month: sixMonthRoadmap ? predictFinishDate(progress, sixMonthRoadmap, startDate) : '',
+    predictedFinish6Month: sixMonthRoadmap ? predictFinishDate(progress, sixMonthRoadmap, startDate, dailyGoal) : '',
     predictedFinishWebDev: roadmaps.find(r => r.id === 'webdev-8week')
-      ? predictFinishDate(progress, roadmaps.find(r => r.id === 'webdev-8week')!, profile.roadmapStartDates?.['webdev-8week'] || startDate)
+      ? predictFinishDate(progress, roadmaps.find(r => r.id === 'webdev-8week')!, profile.roadmapStartDates?.['webdev-8week'] || startDate, dailyGoal)
       : '',
   };
 
@@ -96,13 +100,17 @@ export async function POST(req: Request) {
   const weekSessions = sessions.sessions.slice(-7);
   const hoursStudied = weekSessions.reduce((s, sess) => s + sess.durationMinutes / 60, 0);
 
+  const settings = getUserSettings(session.userId);
+  const dailyGoal = settings.dailyGoal ?? 1;
+
   const sixMonthRoadmap = roadmaps.find(r => r.id === '6month-mastery');
   const startDate = profile.roadmapStartDates?.['6month-mastery'] || '2026-07-26';
   const daysSinceStart = Math.max(1, Math.floor((Date.now() - new Date(startDate).getTime()) / 86_400_000));
-  const expectedCompletion = daysSinceStart / (24 * 7);
-  const actualCompletion = sixMonthRoadmap ? roadmapCompletion(progress, sixMonthRoadmap) / 100 : 0;
-  const paceStatus: 'ahead' | 'on-track' | 'behind' = actualCompletion >= expectedCompletion * 1.05 ? 'ahead'
-    : actualCompletion >= expectedCompletion * 0.9 ? 'on-track' : 'behind';
+  
+  const completedNodes6 = sixMonthRoadmap ? sixMonthRoadmap.phases.flatMap(p => p.weeks.flatMap(w => w.nodes)).filter(n => progress.nodes[n.id]?.status === 'completed').length : 0;
+  const expectedNodes6 = daysSinceStart * dailyGoal;
+  const paceStatus: 'ahead' | 'on-track' | 'behind' = completedNodes6 >= expectedNodes6 * 1.05 ? 'ahead'
+    : completedNodes6 >= expectedNodes6 * 0.9 ? 'on-track' : 'behind';
 
   const entry = {
     ...parsed.data,
@@ -112,9 +120,9 @@ export async function POST(req: Request) {
       streakMaintained: progress.streak.current > 0,
       weakestTrack: computeWeakestTrack(roadmaps, progress),
       paceStatus,
-      predictedFinish6Month: sixMonthRoadmap ? predictFinishDate(progress, sixMonthRoadmap, startDate) : '',
+      predictedFinish6Month: sixMonthRoadmap ? predictFinishDate(progress, sixMonthRoadmap, startDate, dailyGoal) : '',
       predictedFinishWebDev: roadmaps.find(r => r.id === 'webdev-8week')
-        ? predictFinishDate(progress, roadmaps.find(r => r.id === 'webdev-8week')!, profile.roadmapStartDates?.['webdev-8week'] || startDate)
+        ? predictFinishDate(progress, roadmaps.find(r => r.id === 'webdev-8week')!, profile.roadmapStartDates?.['webdev-8week'] || startDate, dailyGoal)
         : '',
     },
     createdAt: new Date().toISOString(),

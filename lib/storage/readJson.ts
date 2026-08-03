@@ -171,6 +171,8 @@ export interface UserSettings {
   quoteCategories: string[];
   shownQuoteIndexes: number[];
   notifications: Record<string, boolean>;
+  dailyGoal?: number;
+  focusTasksCount?: number;
 }
 
 export interface StudySession {
@@ -237,7 +239,10 @@ export function getUserAchievements(userId: string): UserAchievements {
 
 export function getUserSettings(userId: string): UserSettings {
   validateUserId(userId);
-  return readJsonFile(`users/${userId}/settings.json`);
+  const data = readJsonFile<UserSettings>(`users/${userId}/settings.json`);
+  if (data.dailyGoal === undefined) data.dailyGoal = 1;
+  if (data.focusTasksCount === undefined) data.focusTasksCount = 3;
+  return data;
 }
 
 export function getUserSessions(userId: string): UserSessions {
@@ -255,10 +260,66 @@ export function getQuotes(): { quotes: QuoteEntry[] } {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function validateUserId(userId: string): asserts userId is 'swayam' | 'jalisa' {
-  if (userId !== 'swayam' && userId !== 'jalisa') {
+export function ensureUserDirectory(userId: string) {
+  const userDir = path.join(DATA_DIR, 'users', userId);
+  if (!fs.existsSync(userDir)) {
+    fs.mkdirSync(userDir, { recursive: true });
+  }
+  
+  const files = [
+    'achievements.json',
+    'journal.json',
+    'leetcode.json',
+    'profile.json',
+    'progress.json',
+    'resources.json',
+    'retrospectives.json',
+    'sessions.json',
+    'settings.json'
+  ];
+  
+  for (const file of files) {
+    const filePath = path.join(userDir, file);
+    if (!fs.existsSync(filePath)) {
+      const templatePath = path.join(DATA_DIR, 'users', 'jalisa', file);
+      if (fs.existsSync(templatePath)) {
+        let content = fs.readFileSync(templatePath, 'utf-8');
+        content = content.replace(/"userId":\s*"jalisa"/g, `"userId": "${userId}"`);
+        if (file === 'profile.json') {
+          const initials = userId.substring(0, 2).toUpperCase();
+          const displayName = userId.charAt(0).toUpperCase() + userId.slice(1);
+          content = content.replace(/"displayName":\s*"Jalisa"/g, `"displayName": "${displayName}"`);
+          content = content.replace(/"avatarInitials":\s*"JA"/g, `"avatarInitials": "${initials}"`);
+          const todayStr = new Date().toISOString().split('T')[0];
+          content = content.replace(/"6month-mastery":\s*"[^"]*"/g, `"6month-mastery": "${todayStr}"`);
+          content = content.replace(/"webdev-8week":\s*"[^"]*"/g, `"webdev-8week": "${todayStr}"`);
+        }
+        if (file === 'settings.json') {
+          content = content.replace(/"dailyGoal":\s*\d+/g, `"dailyGoal": 2`);
+          content = content.replace(/"focusTasksCount":\s*\d+/g, `"focusTasksCount": 2`);
+        }
+        if (file === 'progress.json') {
+          const defaultProgress = {
+            userId,
+            nodes: {},
+            streak: { current: 0, longest: 0, lastActiveDate: null },
+            xp: { total: 0, level: 1 },
+            archived: [],
+            lastUpdated: new Date().toISOString()
+          };
+          content = JSON.stringify(defaultProgress, null, 2);
+        }
+        fs.writeFileSync(filePath, content, 'utf-8');
+      }
+    }
+  }
+}
+
+export function validateUserId(userId: string): asserts userId is string {
+  if (!userId || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
     throw new Error('Invalid userId — path traversal prevented.');
   }
+  ensureUserDirectory(userId);
 }
 
 /** Get all nodes across a roadmap, flattened */

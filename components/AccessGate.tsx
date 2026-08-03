@@ -13,8 +13,8 @@ export default function AccessGate() {
     // Expose the global function to the window object
     (window as any).getAccess = async (userId: string) => {
       const sanitized = userId?.toLowerCase().trim();
-      if (sanitized !== 'swayam' && sanitized !== 'jalisa') {
-        console.error(`ACCESS DENIED — unrecognized identity: '${userId}'`);
+      if (!sanitized || !/^[a-zA-Z0-9_-]+$/.test(sanitized)) {
+        console.error(`ACCESS DENIED — unrecognized identity format: '${userId}'`);
         return;
       }
       
