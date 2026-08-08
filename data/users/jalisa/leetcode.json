@@ -46,7 +46,7 @@
           "id": "7",
           "title": "Reverse Integer",
           "url": "https://leetcode.com/problems/reverse-integer/",
-          "completed": false
+          "completed": true
         },
         {
           "id": "231",
