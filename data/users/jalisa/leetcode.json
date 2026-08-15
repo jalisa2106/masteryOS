@@ -94,7 +94,7 @@
           "id": "12",
           "title": "Integer to Roman",
           "url": "https://leetcode.com/problems/integer-to-roman/",
-          "completed": false
+          "completed": true
         },
         {
           "id": "204",
