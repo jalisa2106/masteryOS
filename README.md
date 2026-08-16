@@ -1,4 +1,4 @@
-# Mastery OS 🌌
+# Mastery OS 
 
 <div align="center">
   <img src="https://img.shields.io/badge/version-2.0-blue.svg?style=for-the-badge" alt="Version 2.0" />
