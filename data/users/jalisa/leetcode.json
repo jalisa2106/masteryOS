@@ -607,7 +607,7 @@
           "id": "5",
           "title": "Longest Palindromic Substring",
           "url": "https://leetcode.com/problems/longest-palindromic-substring/",
-          "completed": false
+          "completed": true
         },
         {
           "id": "49",
