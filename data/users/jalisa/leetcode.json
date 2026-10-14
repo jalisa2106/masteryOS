@@ -565,7 +565,7 @@
           "id": "151",
           "title": "Reverse Words in a String",
           "url": "https://leetcode.com/problems/reverse-words-in-a-string/",
-          "completed": false
+          "completed": true
         },
         {
           "id": "443",
